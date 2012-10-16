@@ -26,8 +26,12 @@ public class Twitter {
     private static HashMap<Integer, HashMap<String, Integer>> UserWordFreq = new HashMap<>();
     //Create a list of current topics
     private static List<String> currentTopics = new ArrayList<>();
-    //Create a list of word and UserID
+    //Create a hashmap of word and UserID
     private static HashMap<String, String> currTopicUserList = new HashMap<>();
+    //Create a list of User having same location
+    private static HashMap<String, String> CommonLocationUser = new HashMap<>();
+
+
     /*
      * public static void readTextFile1() throws IOException { BufferedReader br
      * = null; char[] buffer = null; ArrayList<Character> key = null;
@@ -51,15 +55,17 @@ public class Twitter {
      *
      * br.close(); }
      */
-
-    // Create HashMap of UserID and Time
+    /**
+     * Create HashMap of UserID and Time
+     *
+     * @param tweets
+     */
     private static void CreateDictUserIDTime(String tweets) {
 
         String[] tokens = tweets.split("\t");
         // In the token list date time as 1 token
         // so splitting the DateTime token into date and time
         String[] dateTimeSplit = tokens[3].split(" ");
-
         //Insert the UserId and Time in hashMap DateTime
         DateTime.put(Integer.parseInt(tokens[0]), dateTimeSplit[1]);
         Iterator iterateTime = DateTime.entrySet().iterator();
@@ -70,16 +76,23 @@ public class Twitter {
         }
     }
 
-    //Remove special characters and stop words from the tweets
+    /**
+     * Remove special characters and stop words from the tweets
+     *
+     *
+     * @param Tweet
+     * @return
+     */
     private static String pruneTweets(String Tweet) {
         String cleanTweets = Tweet.replaceAll("[-+.^:?$;,!*'':()><}{]", "");
         return cleanTweets;
     }
 
     /**
-     * Remove stopwords using stopwords class
+     * Remove stopwords from the tweet
      *
      * @param words
+     * @return
      */
     private static String[] RemoveStopWords(String[] words) {
 
@@ -107,10 +120,10 @@ public class Twitter {
     }
 
     /**
-     * create name value pair of UserID and TweetText
+     * populate current topic list
      *
-     *
-     * @param line
+     * @param fileName
+     * @throws IOException
      */
     private static void CreateCurrentTopicList(String fileName) throws IOException {
         BufferedReader fileReader = null;
@@ -126,12 +139,10 @@ public class Twitter {
             newLine = fileReader.readLine();
         }
         System.out.println("No. of Current Topics = " + currentTopics.size());
-
     }
 
     /**
      * create name value pair of UserID and TweetText
-     *
      *
      * @param line
      */
@@ -199,18 +210,16 @@ public class Twitter {
         String newLine;
         int count = 0;
         while ((newLine = fileReader.readLine()) != null) {
-
             // Get the next complete tweet string which may be multiline
             m = newTweetPattern.matcher(newLine);
             if (m.find()) {
                 newTweet = newLine;
-
                 if (!previousTweet.isEmpty()) {
                     // This marks the end of previous tweet. Extract the info from previous tweet
                     //System.out.println("************************************");
                     //System.out.println(previousTweet);
                     populateTweetInfo(previousTweet);
-                 //   CreateDictUserIDTime(previousTweet);
+                    //     CreateDictUserIDTime(previousTweet);
                 }
                 // Start building the new tweet
                 previousTweet = newTweet;
@@ -221,18 +230,15 @@ public class Twitter {
             if (count % 100000 == 0) {
                 System.gc();
             }
-
             System.out.println("Done with " + count + " lines.");
-
         }
-
         // last line handling
         if (!previousTweet.isEmpty()) {
             // This marks the end of previous tweet. Extract the info from previous tweet
             //System.out.println("************************************");
             //System.out.println(previousTweet);
             populateTweetInfo(previousTweet);
-        //    CreateDictUserIDTime(previousTweet);
+            //  CreateDictUserIDTime(previousTweet);
         }
     }
 
@@ -243,11 +249,8 @@ public class Twitter {
      * @param UserWordFreq
      * @throws IOException
      */
-    private static void populateCurrTopicSimilarUser(List<String> currentTopics,
-            HashMap<Integer, HashMap<String, Integer>> UserWordFreq) {
+    private static void populateCurrTopicSimilarUser() {
 
-
-        Integer count = 1;
         int countWords = 0;
         Map.Entry userID, keyWord;
         String topic;
@@ -268,18 +271,13 @@ public class Twitter {
                 // add each word to the dictionary and keep track of no. of
                 // times it occurs
                 for (int j = 0; j < substr.length; j++) {
-//                    if (currTopicCount.containsKey(substr[j])) {
-//                        count = (Integer) currTopicCount.get(substr[j]) + 1;
-//                        currTopicCount.put(substr[j], count);
-//                    } else {
-                        currTopicCount.put(substr[j], false);
-                    }
+                    currTopicCount.put(substr[j], false);
                 }
+            }
             // if a single word add to dictionary
             else {
                 currTopicCount.put(topic, false);
             }
-
             Iterator it1 = UserWordFreq.entrySet().iterator();
             while (it1.hasNext()) {
                 userID = (Map.Entry) it1.next();
@@ -295,7 +293,7 @@ public class Twitter {
                     if (currTopicCount.containsKey(word)) {
 
                         // if that word is present than decrease the count
-                     //   Boolean value = (currTopicCount.get(word.toString()));
+                        //   Boolean value = (currTopicCount.get(word.toString()));
                         Boolean value = true;
                         // add the updated value to the dictionary i.e if word
                         // is present make it true
@@ -305,7 +303,6 @@ public class Twitter {
                         continue;
                     }
                 }
-
                 //currTopicCount is the hashtable which keep count of
                 // the word in current topic list and frequency
                 Iterator it = currTopicCount.entrySet().iterator();
@@ -316,33 +313,29 @@ public class Twitter {
                         countWords++;
                     }
                 }
-
                 if (countWords == currTopicCount.size()) {
                     if (currTopicUserList.containsKey(topic)) {
                         String ids = (String) currTopicUserList.get(topic);
-                        String users = ids + "_" + UserIDKey;
+                        String users = ids + " " + UserIDKey;
                         currTopicUserList.put(topic, users);
                     } else {
                         currTopicUserList.put(topic, Integer.toString(UserIDKey));
                     }
                 }
                 Iterator ct = currTopicCount.entrySet().iterator();
-                while(ct.hasNext()){
+                while (ct.hasNext()) {
                     Map.Entry currTopic = (Map.Entry) ct.next();
-                    String word = (String)currTopic.getKey();
-                    boolean value = (boolean)currTopic.getValue();
-                    if(value == true){
+                    String word = (String) currTopic.getKey();
+                    boolean value = (boolean) currTopic.getValue();
+                    if (value == true) {
                         value = false;
                         currTopicCount.put(word, value);
                     }
-
                 }
-
                 // reset word count
                 countWords = 0;
             }
         }
-
         Iterator i = currTopicUserList.entrySet().iterator();
         while (i.hasNext()) {
             Map.Entry pairs = (Map.Entry) i.next();
@@ -352,18 +345,54 @@ public class Twitter {
     }
 
     /**
+     * create a list of users and there location
+     *
+     * @param filename
+     * @throws IOException
+     */
+    public static void readLocTextFile(String filename) throws IOException {
+
+        BufferedReader fileReader = null;
+        try {
+            fileReader = new BufferedReader(new FileReader(filename));
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Twitter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        String newLine;
+
+        while ((newLine = fileReader.readLine()) != null) {
+            String[] tokens = newLine.split("\t");
+            if (CommonLocationUser.containsKey(tokens[1])) {
+                String ids = (String) CommonLocationUser.get(tokens[1]);
+                String usersID = ids + " " + tokens[0];
+                CommonLocationUser.put(tokens[1], usersID);
+            } else {
+                CommonLocationUser.put(tokens[1], tokens[0]);
+            }
+        }
+        Iterator i = CommonLocationUser.entrySet().iterator();
+        while (i.hasNext()) {
+            Map.Entry pairs = (Map.Entry) i.next();
+            System.out.println(pairs.getKey() + " = " + pairs.getValue());
+            i.remove(); // avoids a ConcurrentModificationException
+        }
+        System.out.println("User Location List Count" + currTopicUserList.size());
+    }
+
+    /**
      * @param args the command line arguments
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
         // TODO code application logic here
-        String filePath = "Src\\Data\\test.txt";//test.txt"; //training_set_tweets.txt";
+        String filePath = "Src\\Data\\test.txt";//test.txt"; //training_set_tweets.txt" training_set_users;
+        String userLocFilePath = "Src\\Data\\training_set_users.txt";
         readTextFile(filePath);
         String CurrentTopicfileName = "Src\\Data\\hottopics.txt";
         CreateCurrentTopicList(CurrentTopicfileName);
-        populateCurrTopicSimilarUser(currentTopics, UserWordFreq);
+        populateCurrTopicSimilarUser();
+        readLocTextFile(userLocFilePath);
         System.out.println("#Users=" + UserWordFreq.size());
-
-
     }
 }
