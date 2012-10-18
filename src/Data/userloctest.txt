@@ -1,0 +1,8 @@
+14	San Francisco
+15	San Francisco
+18	San Francisco, CA
+19922973	Chicago, IL
+63963170	New York
+17825828	Houston
+71303208	Buffalo, NY
+24117294	Brooklyn
